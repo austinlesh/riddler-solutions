@@ -1,0 +1,94 @@
+---
+title: "Riddler Classic 3-27-20"
+author: "Austin Lesh"
+date: "3/30/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+The puzzle can be found here: https://fivethirtyeight.com/features/can-you-get-the-gloves-out-of-the-box/
+
+```{r, warning = F, message = F}
+library(ggplot2)
+library(fitdistrplus)
+```
+
+First, let's create a function `trial` with parameter `n` that simulates one trial with an n-sided die. The die is rolled, then the results are added to a new die, and so on until the die has the same number on every face. It will return the number of times the die is rolled.
+
+```{r}
+trial <- function(n){
+  die <- 1:n
+  roll <- sample(die, size = n, replace = TRUE)
+  count <- 1
+
+  # Take advantage of the fact that the variance of a constant is zero.
+  # There are other ways to condition the loop, such as while(all(x == x[1])),
+  # but this one seems like the most fun
+  while (var(roll) != 0){
+    die <- roll
+    roll <- sample(die, size = n, replace = TRUE)
+    count <- count + 1
+  }
+  return(count)
+}
+```
+
+Let's dive a little deeper into a 6-sided die, since it's the most commonly used. We can run an experiment with 100,000 replicates to get a pretty good idea of how the average number of rolls converges.
+
+```{r}
+n6results <- replicate(100000, trial(6))
+mean(n6results)
+```
+
+We see that the average number of rolls is `r round(mean(n6results), 2)`. What does the distribution of `n6results` look like? We can inspect it via histogram:
+
+```{r}
+ggplot() + aes(x = n6results) + geom_histogram(binwidth = 1)
+```
+
+Interesting! The distribution of rolls kind of looks like a gamma distribution. Let's try to fit it:
+
+```{r}
+gamma_fit <- fitdist(n6results, distr = "gamma", method = "mle")
+plot(gamma_fit)
+```
+
+Not perfect, but not terrible either.
+
+Let's look at different values of `n` and see if there's a function that maps `n` to the number of rolls needed to achieve equilibrium. I'll go up to n = 20, to satisfy my inner Dungeons and Dragons nerd. Also note that the case where n = 1 is trivial. And, we'll create a custom replicating function to perform multiple trials with `sapply` easily.
+
+```{r}
+n <- 2:20
+
+rep <- function(n, x) {
+  return(mean(replicate(x, trial(n))))
+}
+
+y <- sapply(n, rep, x = 1000)
+
+# To see the results together:
+df <- data.frame(n = n, y = y)
+df
+
+plot(y ~ n)
+```
+
+Maybe this is revealing my naivety, but I was not expecting this to be linear! We can now use simple linear regression to easily find the final form of the function.
+
+```{r}
+mod1 <- lm(y ~ n)
+summary(mod1)
+```
+
+```{r}
+plot(y ~ n)
+abline(mod1)
+```
+
+Pretty good! Doing a little bit of rounding, and letting A = the average number of rolls, we get 
+
+A = `r round(coef(mod1)[2], 2)`n - `r -round(coef(mod1)[1], 2)` for n $\in \{2, 3, ... , 20\}$.
