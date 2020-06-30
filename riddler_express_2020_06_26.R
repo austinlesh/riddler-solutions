@@ -1,6 +1,8 @@
 ## The main part of this Riddler is a nice logic exercise.
 ## The extra credit (below) can be solved with a fun little Markov chain.
 
+## Link to puzzle: https://fivethirtyeight.com/features/can-you-connect-the-dots/
+
 directions <- c("N", "S", "E", "W")
 start <- c(1, 0, 0, 0)
 names(start) <- directions
