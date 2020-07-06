@@ -25,10 +25,7 @@ trial <- function(n){
   roll <- sample(die, size = n, replace = TRUE)
   count <- 1
 
-  # Take advantage of the fact that the variance of a constant is zero.
-  # There are other ways to condition the loop, such as while(all(x == x[1])),
-  # but this one seems like the most fun
-  while (var(roll) != 0){
+  while (var(roll) != 0){ # variance will be 0 when all elements are equal
     die <- roll
     roll <- sample(die, size = n, replace = TRUE)
     count <- count + 1
